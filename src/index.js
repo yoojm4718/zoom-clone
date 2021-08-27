@@ -19,4 +19,8 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({ server });
 
+wss.on("connection", (socket) => {
+  console.log(socket);
+});
+
 server.listen(PORT, handleListen);
