@@ -10,8 +10,12 @@ html(lang="en")
         header 
             h1 Zoom Clone
         main 
+            h3 Nickname: Anonymous
+            form#chooseNickname
+                input(type="text", placeholder="Choose a Nickname", required)
+                button Set
             ul
-            form
+            form#sendMessages
                 input(type="text", placeholder="Write a Message", required)
                 button Send
         script(src="/public/js/app.js")
