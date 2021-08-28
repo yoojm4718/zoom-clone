@@ -19,11 +19,14 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({ server });
 
+const sockets = [];
+
 wss.on("connection", (socket) => {
+  sockets.push(socket);
   console.log("Connected to Browser!!");
-  socket.send("Hello!");
   socket.on("message", (message) => {
-    console.log("New Message:", message.toString("utf-8"));
+    const newMessage = message.toString("utf-8");
+    sockets.forEach((aSocket) => aSocket.send(newMessage));
   });
   socket.on("close", () => console.log("Disconnected from Browser"));
 });
