@@ -1,5 +1,6 @@
 import express from "express";
-import WebSocket from "ws";
+// import WebSocket from "ws";
+import SocketIO from "socket.io";
 import http from "http";
 
 const app = express();
@@ -15,8 +16,19 @@ app.get("/*", (_, res) => res.redirect("/"));
 const handleListen = () =>
   console.log(`Listening on http://localhost:${PORT}/`);
 
-const server = http.createServer(app);
+const httpServer = http.createServer(app);
+const ioServer = SocketIO(httpServer);
 
+ioServer.on("connection", (socket) => {
+  socket.on("enter_room", (msg, done) => {
+    console.log(msg);
+    setTimeout(() => {
+      done();
+    }, 5000);
+  });
+});
+
+/*
 const wss = new WebSocket.Server({ server });
 
 const sockets = [];
@@ -41,5 +53,6 @@ wss.on("connection", (socket) => {
   });
   socket.on("close", () => console.log("Disconnected from Browser"));
 });
+*/
 
-server.listen(PORT, handleListen);
+httpServer.listen(PORT, handleListen);
