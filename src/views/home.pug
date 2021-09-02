@@ -12,7 +12,15 @@ html(lang="en")
         main 
             #welcome 
                 form
-                    input(type="text" required, placeholder="Room Name")
+                    input#roomName(type="text" required, placeholder="Room Name")
+                    input#nickname(type="text" required, placeholder="Nickname")
                     button Enter Room
+            #room
+                h3
+                ul 
+                form
+                    input(type="text" required, placeholder="message")
+                    button Send
+                button#quit Quit Room
         script(src="/socket.io/socket.io.js") 
         script(src="/public/js/app.js")
