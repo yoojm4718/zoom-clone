@@ -34,12 +34,16 @@ function publicRooms() {
   return publicRooms;
 }
 
+function countRoom(roomName) {
+  return ioServer.sockets.adapter.rooms.get(roomName)?.size;
+}
+
 ioServer.on("connection", (socket) => {
   socket.nickname = "Anonymous";
   socket.on("enter_room", (roomName, done) => {
     socket.join(roomName);
-    done(roomName);
-    socket.to(roomName).emit("welcome", socket.nickname);
+    done(roomName, countRoom(roomName));
+    socket.to(roomName).emit("welcome", socket.nickname, countRoom(roomName));
     ioServer.sockets.emit("room_change", publicRooms());
   });
   socket.on("nickname", (nickname) => {
@@ -51,7 +55,7 @@ ioServer.on("connection", (socket) => {
   });
   socket.on("quit_room", (currentRoom, done) => {
     socket.rooms.forEach((room) => {
-      socket.to(room).emit("bye", socket.nickname);
+      socket.to(room).emit("bye", socket.nickname, countRoom(room) - 1);
     });
     socket.leave(currentRoom);
     ioServer.sockets.emit("room_change", publicRooms());
@@ -59,7 +63,7 @@ ioServer.on("connection", (socket) => {
   });
   socket.on("disconnecting", () => {
     socket.rooms.forEach((room) => {
-      socket.to(room).emit("bye", socket.nickname);
+      socket.to(room).emit("bye", socket.nickname, countRoom(room) - 1);
     });
   });
   socket.on("disconnect", () => {

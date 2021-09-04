@@ -19,12 +19,13 @@ function handleQuitRoom() {
   socket.emit("quit_room", currentRoom, goTitle);
 }
 
-function showRoom(roomName) {
+function showRoom(roomName, newCount) {
   currentRoom = roomName;
   welcome.hidden = true;
   room.hidden = false;
   const roomTitle = room.querySelector("h3");
   roomTitle.innerText = `Room Name: ${roomName}`;
+  countReset(newCount);
   const quit = room.querySelector("#quit");
   quit.addEventListener("click", handleQuitRoom);
 }
@@ -55,19 +56,26 @@ function handleRoomMessage(event) {
   roomInput.value = "";
 }
 
+function countReset(newCount) {
+  const h4 = room.querySelector("h4");
+  h4.innerText = `Current Users: ${newCount}`;
+}
+
 welcomeForm.addEventListener("submit", handleRoomSubmit);
 roomForm.addEventListener("submit", handleRoomMessage);
 
-socket.on("welcome", (user) => {
+socket.on("welcome", (user, newCount) => {
   addMessage(`${user} Joined!`);
+  countReset(newCount);
 });
 
 socket.on("message", (roomMessage) => {
   addMessage(roomMessage);
 });
 
-socket.on("bye", (user) => {
+socket.on("bye", (user, newCount) => {
   addMessage(`${user} Left TT`);
+  countReset(newCount);
 });
 
 socket.on("room_change", (rooms) => {
