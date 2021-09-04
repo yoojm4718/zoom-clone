@@ -19,12 +19,28 @@ const handleListen = () =>
 const httpServer = http.createServer(app);
 const ioServer = SocketIO(httpServer);
 
+function publicRooms() {
+  const {
+    sockets: {
+      adapter: { sids, rooms },
+    },
+  } = ioServer;
+  const publicRooms = [];
+  rooms.forEach((_, key) => {
+    if (sids.get(key) === undefined) {
+      publicRooms.push(key);
+    }
+  });
+  return publicRooms;
+}
+
 ioServer.on("connection", (socket) => {
   socket.nickname = "Anonymous";
   socket.on("enter_room", (roomName, done) => {
     socket.join(roomName);
     done(roomName);
     socket.to(roomName).emit("welcome", socket.nickname);
+    ioServer.sockets.emit("room_change", publicRooms());
   });
   socket.on("nickname", (nickname) => {
     socket.nickname = nickname;
@@ -38,12 +54,16 @@ ioServer.on("connection", (socket) => {
       socket.to(room).emit("bye", socket.nickname);
     });
     socket.leave(currentRoom);
+    ioServer.sockets.emit("room_change", publicRooms());
     done();
   });
   socket.on("disconnecting", () => {
     socket.rooms.forEach((room) => {
       socket.to(room).emit("bye", socket.nickname);
     });
+  });
+  socket.on("disconnect", () => {
+    ioServer.sockets.emit("room_change", publicRooms());
   });
 });
 
