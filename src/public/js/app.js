@@ -1,92 +1,108 @@
 const socket = io();
 
-const welcome = document.getElementById("welcome");
-const welcomeForm = welcome.querySelector("form");
-const room = document.getElementById("room");
-const roomForm = room.querySelector("form");
+const myFace = document.getElementById("myFace");
+const muteBtn = document.getElementById("mute");
+const cameraBtn = document.getElementById("camera");
+const cameraSelect = document.getElementById("cameras");
+const audioSelect = document.getElementById("audios");
 
-room.hidden = true;
-let currentRoom;
+let myStream;
+let muted = false;
+let cameraOff = false;
 
-function addMessage(message) {
-  const ul = room.querySelector("ul");
-  const li = document.createElement("li");
-  li.innerText = message;
-  ul.append(li);
-}
-
-function handleQuitRoom() {
-  socket.emit("quit_room", currentRoom, goTitle);
-}
-
-function showRoom(roomName, newCount) {
-  currentRoom = roomName;
-  welcome.hidden = true;
-  room.hidden = false;
-  const roomTitle = room.querySelector("h3");
-  roomTitle.innerText = `Room Name: ${roomName}`;
-  countReset(newCount);
-  const quit = room.querySelector("#quit");
-  quit.addEventListener("click", handleQuitRoom);
-}
-
-function goTitle() {
-  currentRoom = undefined;
-  welcome.hidden = false;
-  room.hidden = true;
-  const roomTitle = room.querySelector("h3");
-  roomTitle.innerText = "";
-}
-
-function handleRoomSubmit(event) {
-  event.preventDefault();
-  const roomInput = welcomeForm.querySelector("#roomName");
-  const nicknameInput = welcomeForm.querySelector("#nickname");
-  socket.emit("nickname", nicknameInput.value);
-  socket.emit("enter_room", roomInput.value, showRoom);
-}
-
-function handleRoomMessage(event) {
-  event.preventDefault();
-  const roomInput = roomForm.querySelector("input");
-  const value = roomInput.value;
-  socket.emit("message", currentRoom, value, () => {
-    addMessage(`You: ${value}`);
-  });
-  roomInput.value = "";
-}
-
-function countReset(newCount) {
-  const h4 = room.querySelector("h4");
-  h4.innerText = `Current Users: ${newCount}`;
-}
-
-welcomeForm.addEventListener("submit", handleRoomSubmit);
-roomForm.addEventListener("submit", handleRoomMessage);
-
-socket.on("welcome", (user, newCount) => {
-  addMessage(`${user} Joined!`);
-  countReset(newCount);
-});
-
-socket.on("message", (roomMessage) => {
-  addMessage(roomMessage);
-});
-
-socket.on("bye", (user, newCount) => {
-  addMessage(`${user} Left TT`);
-  countReset(newCount);
-});
-
-socket.on("room_change", (rooms) => {
-  const roomList = welcome.querySelector("ul");
-  roomList.innerHTML = "";
-  if (rooms.length === 0) {
-    return;
+async function getCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((device) => device.kind === "videoinput");
+    const currentCamera = myStream.getVideoTracks()[0];
+    cameras.forEach((camera) => {
+      const option = document.createElement("option");
+      option.value = camera.deviceId;
+      option.innerText = camera.label;
+      if (currentCamera.label === camera.label) {
+        option.selected = true;
+      }
+      cameraSelect.append(option);
+    });
+  } catch (e) {
+    console.log(e);
   }
-  rooms.forEach((room) => {
-    const li = document.createElement("li");
-    li.innerText = room;
-    roomList.append(li);
-  });
-});
+}
+
+async function getAudios() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audios = devices.filter((device) => device.kind === "audioinput");
+    const currentAudio = myStream.getAudioTracks()[0];
+    audios.forEach((audio) => {
+      const option = document.createElement("option");
+      option.value = audio.deviceId;
+      option.innerText = audio.label;
+      if (currentAudio.label === audio.label) {
+        option.selected = true;
+      }
+      audioSelect.append(option);
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function getMedia(videoId, audioId) {
+  const constraint = {
+    audio: audioId ? { deviceId: { exact: audioId } } : true,
+    video: videoId ? { deviceId: { exact: videoId } } : true,
+  };
+  try {
+    myStream = await navigator.mediaDevices.getUserMedia(constraint);
+    myFace.srcObject = myStream;
+    if (!videoId) {
+      await getCameras();
+    }
+    if (!audioId) {
+      await getAudios();
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+getMedia();
+
+function handleMuteClick() {
+  myStream
+    .getAudioTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
+  if (!muted) {
+    muteBtn.innerText = "음소거 해제";
+    muted = true;
+  } else {
+    muteBtn.innerText = "음소거";
+    muted = false;
+  }
+}
+function handleCameraClick() {
+  myStream
+    .getVideoTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
+  if (cameraOff) {
+    cameraBtn.innerText = "카메라 끄기";
+    cameraOff = false;
+  } else {
+    cameraBtn.innerText = "카메라 켜기";
+    cameraOff = true;
+  }
+}
+
+async function handleCameraChange() {
+  await getMedia(cameraSelect.value, undefined);
+}
+
+async function handleAudioChange() {
+  await getMedia(undefined, audioSelect.value);
+}
+
+muteBtn.addEventListener("click", handleMuteClick);
+cameraBtn.addEventListener("click", handleCameraClick);
+cameraSelect.addEventListener("input", handleCameraChange);
+audioSelect.addEventListener("input", handleAudioChange);
